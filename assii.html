@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ASCII Video Studio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "SF Pro Display", sans-serif;
+      background: #0a0a0f;
+      color: #e4e4e7;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.1) 0%, transparent 60%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .card {
+      background: rgba(20, 20, 30, 0.6);
+      backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      transition: transform 0.3s ease;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .title-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .title {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a78bfa 0%, #ec4899 50%, #06b6d4 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #c4b5fd;
+    }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #67e8f9;
+      gap: 6px;
+    }
+
+    .chip::before {
+      content: "●";
+      color: #22d3ee;
+      font-size: 0.6rem;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .file-btn-wrapper {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .file-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+      border: 1px solid rgba(99, 102, 241, 0.5);
+      border-radius: 999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #e4e4e7;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .file-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
+    }
+
+    #fileInput {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border: none;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5);
+    }
+
+    .button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .button.secondary {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(219, 39, 119, 0.3));
+      box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2);
+    }
+
+    .button.secondary:hover:not(:disabled) {
+      box-shadow: 0 8px 24px rgba(236, 72, 153, 0.4);
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .col-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #a1a1aa;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    video {
+      width: 100%;
+      max-height: 300px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #000;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: #71717a;
+      margin-top: 8px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #3f3f46;
+      box-shadow: 0 0 8px rgba(63, 63, 70, 0.5);
+    }
+
+    .status.playing .status-dot {
+      background: #22c55e;
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+    }
+
+    .status.error {
+      color: #f87171;
+    }
+
+    .status.error .status-dot {
+      background: #ef4444;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+    }
+
+    .slider-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.5);
+      transition: all 0.2s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.7);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.5);
+      transition: all 0.2s ease;
+    }
+
+    input[type="range"]::-moz-range-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.7);
+    }
+
+    .slider-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #c4b5fd;
+      min-width: 70px;
+      text-align: right;
+    }
+
+    .hint {
+      font-size: 0.75rem;
+      color: #71717a;
+      line-height: 1.5;
+      margin-top: 4px;
+    }
+
+    .ascii-card {
+      background: rgba(10, 10, 15, 0.8);
+      backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(99, 102, 241, 0.2),
+        0 0 60px rgba(99, 102, 241, 0.1);
+    }
+
+    .ascii-card.color-mode {
+      border-color: rgba(236, 72, 153, 0.4);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(236, 72, 153, 0.2),
+        0 0 60px rgba(236, 72, 153, 0.1);
+    }
+
+    .ascii-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .ascii-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ascii-title h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #e4e4e7;
+    }
+
+    .ascii-badge {
+      padding: 4px 10px;
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #c4b5fd;
+    }
+
+    .color-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .toggle-knob {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      background: #71717a;
+      border-radius: 999px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    #colorToggle {
+      display: none;
+    }
+
+    #colorToggle:checked + .toggle-switch {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(219, 39, 119, 0.3));
+      border-color: rgba(236, 72, 153, 0.6);
+    }
+
+    #colorToggle:checked + .toggle-switch .toggle-knob {
+      transform: translateX(20px);
+      background: linear-gradient(135deg, #ec4899, #db2777);
+      box-shadow: 0 0 12px rgba(236, 72, 153, 0.6);
+    }
+
+    .toggle-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #a1a1aa;
+    }
+
+    .ascii-output {
+      font-family: "JetBrains Mono", "Fira Code", "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
+      font-size: 8px;
+      line-height: 7px;
+      white-space: pre;
+      overflow: auto;
+      max-height: 70vh;
+      color: #a5b4fc;
+      text-shadow: 0 0 8px rgba(165, 180, 252, 0.5);
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .ascii-output.color-mode {
+      text-shadow: none;
+      border-color: rgba(236, 72, 153, 0.2);
+    }
+
+    .ascii-output::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .ascii-output::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+    }
+
+    .ascii-output::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.5);
+      border-radius: 4px;
+    }
+
+    .ascii-output::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.7);
+    }
+
+    @media (max-width: 768px) {
+      .app {
+        padding: 20px 16px;
+      }
+
+      .card {
+        padding: 24px 20px;
+      }
+
+      .title {
+        font-size: 1.5rem;
+      }
+
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .file-btn-wrapper,
+      .button {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .ascii-output {
+        font-size: 6px;
+        line-height: 5px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .card {
+        padding: 20px 16px;
+      }
+
+      .title {
+        font-size: 1.25rem;
+      }
+
+      .ascii-output {
+        font-size: 5px;
+        line-height: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <div class="card-header">
+        <div class="title-section">
+          <h1 class="title">ASCII Video Studio</h1>
+          <span class="badge">local only</span>
+        </div>
+        <div class="chips">
+          <span class="chip">Local Upload</span>
+          <span class="chip">Live ASCII</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="file-btn-wrapper">
+          <label class="file-btn">
+            <span>📂</span>
+            <span>Select Video File</span>
+          </label>
+          <input id="fileInput" type="file" accept="video/*" />
+        </div>
+        <button id="playAsciiBtn" class="button" disabled>
+          ▶ Play ASCII
+        </button>
+        <button id="stopAsciiBtn" class="button secondary" disabled>
+          ⏹ Stop
+        </button>
+      </div>
+
+      <div class="two-col">
+        <div class="col-section">
+          <span class="section-label">Video (audio source)</span>
+          <video id="video" controls></video>
+          <div id="status" class="status">
+            <span class="status-dot"></span>
+            <span>Waiting for video…</span>
+          </div>
+        </div>
+
+        <div class="col-section">
+          <span class="section-label">ASCII Width (Resolution)</span>
+          <div class="slider-wrapper">
+            <input id="widthRange" type="range" min="40" max="200" value="120" />
+            <span id="widthLabel" class="slider-label">120 cols</span>
+          </div>
+          <div class="hint">
+            Width = characters per row. Height is auto-calculated from the video aspect ratio. If the frame gets too tall, the font shrinks to fit.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card ascii-card" id="asciiContainer">
+      <div class="ascii-header">
+        <div class="ascii-title">
+          <h2>ASCII Output</h2>
+          <span class="ascii-badge">Live Render · Auto Aspect</span>
+        </div>
+        <label class="color-toggle">
+          <input type="checkbox" id="colorToggle" />
+          <span class="toggle-switch">
+            <span class="toggle-knob"></span>
+          </span>
+          <span class="toggle-label">Color Mode</span>
+        </label>
+      </div>
+      <pre id="asciiOutput" class="ascii-output"></pre>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    const fileInput = document.getElementById("fileInput");
+    const playAsciiBtn = document.getElementById("playAsciiBtn");
+    const stopAsciiBtn = document.getElementById("stopAsciiBtn");
+    const asciiOutput = document.getElementById("asciiOutput");
+    const asciiContainer = document.getElementById("asciiContainer");
+    const colorToggle = document.getElementById("colorToggle");
+    const statusEl = document.getElementById("status");
+    const widthRange = document.getElementById("widthRange");
+    const widthLabel = document.getElementById("widthLabel");
+
+    const ASCII_CHARS = "@%#*+=-:. ";
+    const CHAR_ASPECT = 0.55;
+
+    const BASE_FONT_SIZE = 8;
+    const BASE_LINE_HEIGHT = 7;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+    let rendering = false;
+    let currentObjectUrl = null;
+    let lastAsciiRows = 0;
+
+    function setStatus(text, type = "idle") {
+      statusEl.classList.remove("playing", "error");
+      if (type === "playing") statusEl.classList.add("playing");
+      if (type === "error") statusEl.classList.add("error");
+      statusEl.innerHTML = '<span class="status-dot"></span><span>' + text + '</span>';
+    }
+
+    function updateWidthLabel() {
+      widthLabel.textContent = widthRange.value + " cols";
+    }
+
+    widthRange.addEventListener("input", () => {
+      updateWidthLabel();
+      adjustAsciiFont();
+    });
+
+    updateWidthLabel();
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith("video/")) {
+        setStatus("Please select a video file.", "error");
+        return;
+      }
+
+      if (currentObjectUrl) {
+        URL.revokeObjectURL(currentObjectUrl);
+      }
+
+      const url = URL.createObjectURL(file);
+      currentObjectUrl = url;
+      video.src = url;
+      video.play().catch(() => {});
+      playAsciiBtn.disabled = false;
+      setStatus("Loaded file: " + file.name);
+    });
+
+    colorToggle.addEventListener("change", () => {
+      if (colorToggle.checked) {
+        asciiContainer.classList.add("color-mode");
+        asciiOutput.classList.add("color-mode");
+      } else {
+        asciiContainer.classList.remove("color-mode");
+        asciiOutput.classList.remove("color-mode");
+      }
+    });
+
+    function frameToAscii(targetWidth, colorMode) {
+      if (!video.videoWidth || !video.videoHeight) return "";
+
+      const videoW = video.videoWidth;
+      const videoH = video.videoHeight;
+
+      const width = targetWidth;
+      const height = Math.max(4, Math.floor((videoH / videoW) * width * CHAR_ASPECT));
+
+      lastAsciiRows = height;
+
+      canvas.width = width;
+      canvas.height = height;
+
+      try {
+        ctx.drawImage(video, 0, 0, width, height);
+      } catch (e) {
+        setStatus("Cannot draw video frame.", "error");
+        rendering = false;
+        return "";
+      }
+
+      const frame = ctx.getImageData(0, 0, width, height).data;
+      const len = ASCII_CHARS.length;
+
+      if (colorMode) {
+        let html = "";
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            const r = frame[idx];
+            const g = frame[idx + 1];
+            const b = frame[idx + 2];
+            const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+            let charIndex = Math.floor((luminance / 255) * (len - 1));
+            if (charIndex < 0) charIndex = 0;
+            if (charIndex >= len) charIndex = len - 1;
+            const char = ASCII_CHARS[charIndex];
+            const color = `rgb(${r},${g},${b})`;
+            html += `<span style="color:${color}">${char}</span>`;
+          }
+          html += "\n";
+        }
+        return html;
+      } else {
+        let ascii = "";
+        for (let y = 0; y < height; y++) {
+          let row = "";
+          for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            const r = frame[idx];
+            const g = frame[idx + 1];
+            const b = frame[idx + 2];
+            const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+            let charIndex = Math.floor((luminance / 255) * (len - 1));
+            if (charIndex < 0) charIndex = 0;
+            if (charIndex >= len) charIndex = len - 1;
+            row += ASCII_CHARS[charIndex];
+          }
+          ascii += row + "\n";
+        }
+        return ascii;
+      }
+    }
+
+    function adjustAsciiFont() {
+      if (!lastAsciiRows) return;
+
+      const maxHeightPx = window.innerHeight * 0.65;
+      const neededPx = lastAsciiRows * BASE_LINE_HEIGHT;
+
+      let scale = maxHeightPx / neededPx;
+      if (scale > 1) scale = 1;
+      if (scale < 0.4) scale = 0.4;
+
+      asciiOutput.style.fontSize = (BASE_FONT_SIZE * scale).toFixed(2) + "px";
+      asciiOutput.style.lineHeight = (BASE_LINE_HEIGHT * scale).toFixed(2) + "px";
+    }
+
+    window.addEventListener("resize", adjustAsciiFont);
+
+    function renderLoop() {
+      if (!rendering) return;
+      if (video.paused || video.ended) {
+        rendering = false;
+        playAsciiBtn.disabled = false;
+        stopAsciiBtn.disabled = true;
+        setStatus("Paused.", "idle");
+        return;
+      }
+
+      const colorMode = colorToggle.checked;
+      const result = frameToAscii(parseInt(widthRange.value, 10), colorMode);
+      
+      if (result) {
+        if (colorMode) {
+          asciiOutput.innerHTML = result;
+        } else {
+          asciiOutput.textContent = result;
+        }
+        adjustAsciiFont();
+      }
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    playAsciiBtn.addEventListener("click", () => {
+      if (!video.src) {
+        setStatus("Load a video first.", "error");
+        return;
+      }
+      video.play().then(() => {
+        rendering = true;
+        playAsciiBtn.disabled = true;
+        stopAsciiBtn.disabled = false;
+        setStatus("Playing ASCII + audio from video.", "playing");
+        renderLoop();
+      }).catch((err) => {
+        console.error(err);
+        setStatus("Browser blocked autoplay. Press play on the video, then click Play ASCII.", "error");
+      });
+    });
+
+    stopAsciiBtn.addEventListener("click", () => {
+      rendering = false;
+      video.pause();
+      playAsciiBtn.disabled = false;
+      stopAsciiBtn.disabled = true;
+      setStatus("Stopped.", "idle");
+    });
+
+    video.addEventListener("ended", () => {
+      rendering = false;
+      playAsciiBtn.disabled = false;
+      stopAsciiBtn.disabled = true;
+      setStatus("Ended.", "idle");
+    });
+  </script>
+</body>
+</html>
